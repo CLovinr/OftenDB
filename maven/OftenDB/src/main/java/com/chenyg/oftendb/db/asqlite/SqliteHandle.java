@@ -57,6 +57,10 @@ public class SqliteHandle implements DBHandle
         }
     }
 
+    private  Object toWhere(Condition condition){
+        return condition==null?"":" WHERE "+checkCondition(condition).toFinalObject();
+    }
+
     private Condition checkCondition(Condition condition)
     {
         return SqlHandle.checkCondition(condition);
@@ -216,8 +220,8 @@ public class SqliteHandle implements DBHandle
     public int del(Condition query) throws DBException
     {
         String sql = "DELETE FROM `" + tableName
-                + "` WHERE "
-                + checkCondition(query).toFinalObject();
+                + "`"
+                +toWhere(query)+";";
         SQLiteStatement statement = null;
         try
         {
@@ -381,8 +385,8 @@ public class SqliteHandle implements DBHandle
     public long exists(Condition query) throws DBException
     {
         String sql = "SELECT count(*) FROM `" + tableName
-                + "` WHERE "
-                + checkCondition(query).toFinalObject() + ";";
+                + "`"
+                + toWhere(query)+";";
         Cursor cursor = null;
         try
         {
@@ -409,8 +413,7 @@ public class SqliteHandle implements DBHandle
                 + "` SET `"
                 + name
                 + "`=?"
-                + (query == null ? ""
-                : " WHERE " + checkCondition(query).toFinalObject()) + ";";
+                + toWhere(query)+";";
         SQLiteStatement statement = null;
         try
         {

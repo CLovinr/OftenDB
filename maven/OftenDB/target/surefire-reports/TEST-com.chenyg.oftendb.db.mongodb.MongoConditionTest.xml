@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <testsuite tests="1" failures="0" name="com.chenyg.oftendb.db.mongodb.MongoConditionTest" time="0.007" errors="0" skipped="0">
   <properties>
-    <property name="idea.version" value="2016.1.2"/>
+    <property name="idea.version" value="2016.1.3"/>
     <property name="java.runtime.name" value="Java(TM) SE Runtime Environment"/>
     <property name="sun.boot.library.path" value="D:\Program Files\Java\jdk1.8.0_20\jre\bin"/>
     <property name="java.vm.version" value="25.20-b23"/>
@@ -29,6 +29,7 @@
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="user.variant" value=""/>
     <property name="os.name" value="Windows 8.1"/>
+    <property name="archetypeCatalog" value="internal"/>
     <property name="classworlds.conf" value="F:\GreenSofts\apache-maven-3.3.9\bin\m2.conf"/>
     <property name="sun.jnu.encoding" value="GBK"/>
     <property name="java.library.path" value="D:\Program Files\Java\jdk1.8.0_20\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;H:\500_Programs\Program Files\MongoDB\MongoDB 2.6 Standard\bin;H:\500_Programs\GreenSofts\jlint-3.0-bin-windows;F:\GreenSofts\apache-maven-3.3.9\bin;F:\GreenSofts\gradle-2.12\\bin;D:\Program Files\Java\jdk1.8.0_20\jre\bin;D:\Program Files\Java\jdk1.8.0_20\bin;C:\ProgramData\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;G:\Program Files\MATLAB\R2013b\runtime\win64;G:\Program Files\MATLAB\R2013b\bin;F:\Program Files\TortoiseSVN\bin;C:\Program Files\Lenovo\Bluetooth Software\;C:\Program Files\Lenovo\Bluetooth Software\syswow64;F:\Program Files\nodejs\;F:\Program Files (x86)\SSH Communications Security\SSH Secure Shell;C:\Users\宇宙之灵\AppData\Roaming\npm;."/>
@@ -48,7 +49,7 @@
     <property name="java.vm.specification.version" value="1.8"/>
     <property name="sun.arch.data.model" value="64"/>
     <property name="java.home" value="D:\Program Files\Java\jdk1.8.0_20\jre"/>
-    <property name="sun.java.command" value="com.intellij.rt.execution.application.AppMain org.codehaus.classworlds.Launcher -Didea.version=2016.1.2 -s H:\Win10Moved\Users\宇宙之灵\.m2\settings.xml -Dmaven.repo.local=H:\Win10Moved\Users\宇宙之灵\.m2\repository install"/>
+    <property name="sun.java.command" value="com.intellij.rt.execution.application.AppMain org.codehaus.classworlds.Launcher -Didea.version=2016.1.3 -s H:\Win10Moved\Users\宇宙之灵\.m2\settings.xml -Dmaven.repo.local=H:\Win10Moved\Users\宇宙之灵\.m2\repository install"/>
     <property name="java.specification.vendor" value="Oracle Corporation"/>
     <property name="user.language" value="zh"/>
     <property name="awt.toolkit" value="sun.awt.windows.WToolkit"/>

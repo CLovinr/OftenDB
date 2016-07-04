@@ -45,8 +45,11 @@ public class SqlHandle implements DBHandle
         this.tableName = tableName;
     }
 
-    private static final SqlCondition TRUE = new SqlCondition();
+    private static final SqlCondition TRUE = null;// new SqlCondition();
 
+    private static Object toWhere(Condition condition){
+        return condition==null?"":" WHERE "+checkCondition(condition).toFinalObject();
+    }
     public static SqlCondition checkCondition(Condition condition)
     {
         if (condition == null)
@@ -93,8 +96,7 @@ public class SqlHandle implements DBHandle
     public int del(Condition query) throws DBException
     {
         String sql = "DELETE FROM `" + tableName
-                + "` WHERE "
-                + checkCondition(query).toFinalObject() + ";";
+                + "`" + toWhere(query)+ ";";
 
         return DataBase.execute(conn, sql);
     }
@@ -434,9 +436,7 @@ public class SqlHandle implements DBHandle
         String sql = "UPDATE `" + tableName
                 + "` SET `"
                 + name
-                + "`=?"
-                + (query == null ? ""
-                : " WHERE " + checkCondition(query).toFinalObject()) + ";";
+                + "`=?"+toWhere(query)+ ";";
         PreparedStatement ps = null;
         try
         {
@@ -518,7 +518,7 @@ public class SqlHandle implements DBHandle
             PreparedStatement ps = null;
             try
             {
-                String sql = SqlUtil.toSetValues(tableName, updateFields.names(), checkCondition(query),true);
+                String sql = SqlUtil.toSetValues(tableName, updateFields.names(), checkCondition(query), true);
                 ps = conn.prepareStatement(sql);
                 for (int i = 0; i < updateFields.size(); i++)
                 {
@@ -656,9 +656,7 @@ public class SqlHandle implements DBHandle
 
             long n = 0;
 
-            String sql = "SELECT count(*) rscount FROM `" + tableName
-                    + "` WHERE "
-                    + condition.toFinalObject() + ";";
+            String sql = "SELECT count(*) rscount FROM `" + tableName+"`"+toWhere(condition) + ";";
             PreparedStatement ps = null;
             try
             {
