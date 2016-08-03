@@ -132,6 +132,7 @@ public class VcodeUser implements Serializable
                     Vcode vcode = vcodeResult.vcode;
                     if (vcode.vcode.equalsIgnoreCase(vcodeStr))
                     {
+                        vcodeSaver.remove(wpObject);
                         jResponse.setCode(ResultCode.SUCCESS);
                     } else
                     {

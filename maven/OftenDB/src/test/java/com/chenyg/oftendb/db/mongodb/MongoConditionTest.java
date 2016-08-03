@@ -1,8 +1,5 @@
 package com.chenyg.oftendb.db.mongodb;
 
-import com.chenyg.oftendb.db.Condition;
-import com.chenyg.oftendb.db.Unit;
-import com.chenyg.wporter.log.LogUtil;
 import org.junit.Test;
 
 /**

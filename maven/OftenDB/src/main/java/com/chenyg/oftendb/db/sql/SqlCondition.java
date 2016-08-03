@@ -4,6 +4,12 @@ import com.chenyg.oftendb.db.BaseEasier;
 import com.chenyg.oftendb.db.Condition;
 import com.chenyg.oftendb.db.Operator;
 import com.chenyg.oftendb.db.Unit;
+import com.chenyg.wporter.util.WPTool;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SqlCondition extends Condition
 {
@@ -26,31 +32,68 @@ public class SqlCondition extends Condition
 
     public static final Operator IS_NOT_NULL = new MyOperator("is not NULL");
 
+
     /**
-     * 会进行sql注入处理.
+     * 返回为一个Object[]{whereSql,args}
+     *
+     * @return
+     * @throws ConditionException
      */
     @Override
     public Object toFinalObject() throws ConditionException
     {
-        StringBuilder stringBuilder = new StringBuilder();
+        return _toFinalObject();
+    }
 
+    /**
+     * 会进行sql注入处理.
+     */
+    private Object[] _toFinalObject() throws ConditionException
+    {
+        StringBuilder stringBuilder = new StringBuilder();
+        List<Object> args = new ArrayList<>(size());
         for (int i = 0; i < size(); i++)
         {
             Operator operator = getOperator(i);
             if (operator == NOT || operator == OR)
             {
-                deal2(operator, get(i), stringBuilder);
+                deal2(operator, get(i), stringBuilder, args);
             } else
             {
-                dealNormal(operator, get(i), stringBuilder);
+                dealNormal(operator, get(i), stringBuilder, args);
             }
         }
 
         if (stringBuilder.length() == 0)
         {
-            stringBuilder.append("TRUE");
+            stringBuilder.append(" TRUE ");
         }
-        return stringBuilder.toString();
+
+        StringBuilder result = new StringBuilder();
+        List<Object> list = new ArrayList<>(args.size());
+
+        int index1 = 0, index2 = 0;
+        while (true)
+        {
+            index1 = stringBuilder.indexOf("{", index2);
+            if (index1 == -1)
+            {
+                result.append(stringBuilder.subSequence(index2, stringBuilder.length()));
+                break;
+            } else
+            {
+                result.append(stringBuilder.subSequence(index2, index1));
+            }
+
+            index2 = stringBuilder.indexOf("}", index1 + 1);
+            result.append('?');
+            list.add(args.get(Integer.parseInt(stringBuilder.substring(index1 + 1, index2))));
+            if (++index2 >= stringBuilder.length())
+            {
+                break;
+            }
+        }
+        return new Object[]{result.toString(), list.toArray(new Object[0])};
     }
 
 
@@ -62,21 +105,21 @@ public class SqlCondition extends Condition
         return obj != null ? obj.toString() : super.toString();
     }
 
-    private void deal2(Operator operator, Object object, StringBuilder stringBuilder)
+    private void deal2(Operator operator, Object object, StringBuilder stringBuilder, List<Object> args)
     {
         if (!(object instanceof SqlCondition))
         {
             throw new ConditionException("value should be type of " + getClass()
-                    + ".current type is "
+                    + ".Current type is "
                     + object.getClass());
         }
         SqlCondition condition = (SqlCondition) object;
 
-        link(stringBuilder);
+        link(stringBuilder);//and或or连接
 
         if (operator == NOT)
         {
-            stringBuilder.append("NOT");
+            stringBuilder.append(" NOT ");
 
         } else if (operator == OR)
         {
@@ -86,11 +129,32 @@ public class SqlCondition extends Condition
             throw new ConditionException("the operator should be " + NOT
                     + " or "
                     + OR
-                    + " for value of BasicCondition type");
+                    + " for value of " + getClass().getSimpleName() + " type");
         }
-        stringBuilder.append("(").append(condition.toFinalObject()).append(")");
+        Object[] sqlArgs = (Object[]) condition.toFinalObject();
+        Object[] _args = (Object[]) sqlArgs[1];
+        String sql = (String) sqlArgs[0];
+        stringBuilder.append("(");
+        for (int i = 0, k = 0; i < sql.length(); i++)
+        {
+            char c = sql.charAt(i);
+            if (c == '?')
+            {
+                stringBuilder.append("{").append(args.size()).append("}");
+                args.add(_args[k++]);
+            } else
+            {
+                stringBuilder.append(c);
+            }
+        }
+        stringBuilder.append(")");
     }
 
+    /**
+     * and 或 or 连接。
+     *
+     * @param stringBuilder
+     */
     private void link(StringBuilder stringBuilder)
     {
         if (stringBuilder.length() > 0)
@@ -149,7 +213,15 @@ public class SqlCondition extends Condition
         return operator;
     }
 
-    private void dealNormal(Operator operator, Object object, StringBuilder stringBuilder)
+    private void chekName(String name)
+    {
+        if (WPTool.isEmpty(name) || name.indexOf('{') >= 0 || name.indexOf('}') >= 0)
+        {
+            throw new RuntimeException("illegal name of '" + name + "'");
+        }
+    }
+
+    private void dealNormal(Operator operator, Object object, StringBuilder stringBuilder, List<Object> args)
     {
         if (!(object instanceof Unit))
         {
@@ -159,10 +231,16 @@ public class SqlCondition extends Condition
 
         dealNames(unit);// @Key注解的处理
 
-        link(stringBuilder);
-
-        stringBuilder.append(unit.isParam1Value() ? SqlUtil.checkStr(unit.getParam1())
-                : "`" + unit.getParam1() + "`");
+        link(stringBuilder);//and或or
+        if (unit.isParam1Value())
+        {
+            stringBuilder.append("{").append(args.size()).append("}");
+            args.add(unit.getParam1());
+        } else
+        {
+            chekName(unit.getParam1());
+            stringBuilder.append("`").append(unit.getParam1()).append("`");
+        }
         stringBuilder.append(" ");
 
         if (operator == IS_NOT_NULL)
@@ -185,16 +263,19 @@ public class SqlCondition extends Condition
                 {
                     for (int i = 0; i < objects.length - 1; i++)
                     {
-                        sBuilder.append(SqlUtil.checkStr(objects[i])).append(",");
+                        sBuilder.append("{").append(args.size()).append("},");
+                        args.add(objects[i]);
                     }
                     if (objects.length > 0)
                     {
-                        sBuilder.append(SqlUtil.checkStr(objects[objects.length - 1]));
+                        sBuilder.append("{").append(args.size()).append("},");
+                        args.add(objects[objects.length - 1]);
                     }
                 }
             } else
             {
-                sBuilder.append(SqlUtil.checkStr(unit.getParam2()));
+                sBuilder.append("{").append(args.size()).append("},");
+                args.add(unit.getParam2());
             }
 
             sBuilder.append(") ");
@@ -225,16 +306,23 @@ public class SqlCondition extends Condition
             stringBuilder.append("LIKE");
         } else if (operator == SUBSTR)
         {
-            stringBuilder.append("LIKE ");
-            stringBuilder.append(SqlUtil.checkStr("%" + unit.getParam2() + "%"));
+            stringBuilder.append("LIKE ").append("{").append(args.size()).append("}");
+            args.add("%" + unit.getParam2() + "%");
             return;
         } else
         {
             throw new ConditionException("unknown operator " + operator);
         }
         stringBuilder.append(" ");
-        stringBuilder.append(unit.isParam2Value() ? SqlUtil.checkStr(unit.getParam2())
-                : "`" + unit.getParam2() + "`");
+        if (unit.isParam2Value())
+        {
+            stringBuilder.append("{").append(args.size()).append("}");
+            args.add(unit.getParam2());
+        } else
+        {
+            chekName((String) unit.getParam2());
+            stringBuilder.append("`").append(unit.getParam2()).append("`");
+        }
     }
 
     @Override

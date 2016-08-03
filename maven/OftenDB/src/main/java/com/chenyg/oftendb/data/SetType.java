@@ -1,5 +1,7 @@
 package com.chenyg.oftendb.data;
 
+import com.chenyg.wporter.WPObject;
+
 /**
  * 设置类型
  * 
@@ -11,7 +13,7 @@ public enum SetType
     
     ADD,REPLACE, UPDATE, DELETE, QUERY,
     /**
-     * 用于{@linkplain Common#createData(Class, com.chenyg.wporter.WPObject)}
+     * 用于{@linkplain Common#createData(Class, WPObject)}
      */
     CREATE
 }

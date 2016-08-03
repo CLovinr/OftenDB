@@ -9,82 +9,90 @@ import com.chenyg.oftendb.db.BaseEasier;
 
 public class SqlUtil
 {
-    /**
-     * 把字段field的值value转换为字符串,对String会进行sql防注入处理。
-     *
-     * @param typeName
-     * @param value
-     * @return
-     */
-    public static String checkStr(String typeName, Object value)
+
+
+    public static class WhereSQL
     {
-        if (value == null)
-        {
-            return null;
-        }
-        String s;
-        String cName = typeName;
-
-        if (value instanceof String)
-        {
-            value = ((String) value).replaceAll(".*([';]+|(--)+).*", "_");
-        }
-
-        // /
-        if (cName.equals(String.class.getName()) || cName.equals("char")
-                || cName.equals(Character.class.getName())
-                || cName.equals(JSONObject.class.getName())
-                || cName.equals(JSONArray.class.getName()))
-        {
-            s = "'" + value + "'";
-        } else if (cName.equals("boolean") || cName.equals(Boolean.class.getName()))
-        {
-            s = ((Boolean) value ? 1 : 0) + "";
-        } else
-        {
-            s = value.toString();
-        }
-
-        return s;
+        public String sql;
+        public Object[] args;
     }
 
-    /**
-     * 对String会进行sql防注入处理。
-     *
-     * @param value
-     * @return
-     */
-    public static String checkStr(Object value)
-    {
-        if (value == null)
-        {
-            return null;
-        }
-        String s;
-        String cName = value.getClass().getName();
-
-        if (value instanceof String)
-        {
-            value = ((String) value).replaceAll(".*([';]+|(--)+).*", "_");
-        }
-
-        // /
-        if (cName.equals(String.class.getName()) || cName.equals("char")
-                || cName.equals(Character.class.getName())
-                || cName.equals(JSONObject.class.getName())
-                || cName.equals(JSONArray.class.getName()))
-        {
-            s = "'" + value + "'";
-        } else if (cName.equals("boolean") || cName.equals(Boolean.class.getName()))
-        {
-            s = ((Boolean) value ? 1 : 0) + "";
-        } else
-        {
-            s = value.toString();
-        }
-
-        return s;
-    }
+//    /**
+//     * 把字段field的值value转换为字符串,对String会进行sql防注入处理。
+//     *
+//     * @param typeName
+//     * @param value
+//     * @return
+//     */
+//    public static String checkStr(String typeName, Object value)
+//    {
+//        if (value == null)
+//        {
+//            return null;
+//        }
+//        String s;
+//        String cName = typeName;
+//
+//        if (value instanceof String)
+//        {
+//            value = ((String) value).replaceAll(".*([';]+|(--)+).*", "_");
+//        }
+//
+//        // /
+//        if (cName.equals(String.class.getName()) || cName.equals("char")
+//                || cName.equals(Character.class.getName())
+//                || cName.equals(JSONObject.class.getName())
+//                || cName.equals(JSONArray.class.getName()))
+//        {
+//            s = "'" + value + "'";
+//        } else if (cName.equals("boolean") || cName.equals(Boolean.class.getName()))
+//        {
+//            s = ((Boolean) value ? 1 : 0) + "";
+//        } else
+//        {
+//            s = value.toString();
+//        }
+//
+//        return s;
+//    }
+//
+//    /**
+//     * 对String会进行sql防注入处理。
+//     *
+//     * @param value
+//     * @return
+//     */
+//    public static String checkStr(Object value)
+//    {
+//        if (value == null)
+//        {
+//            return null;
+//        }
+//        String s;
+//        String cName = value.getClass().getName();
+//
+//        if (value instanceof String)
+//        {
+//            value = ((String) value).replaceAll(".*([';]+|(--)+).*", "_");
+//        }
+//
+//        // /
+//        if (cName.equals(String.class.getName()) || cName.equals("char")
+//                || cName.equals(Character.class.getName())
+//                || cName.equals(JSONObject.class.getName())
+//                || cName.equals(JSONArray.class.getName()))
+//        {
+//            s = "'" + value + "'";
+//        } else if (cName.equals("boolean") || cName.equals(Boolean.class.getName()))
+//        {
+//            s = ((Boolean) value ? 1 : 0) + "";
+//        } else
+//        {
+//            s = value.toString();
+//        }
+//
+//        return s;
+//    }
 
     /**
      * 转换成insert或replace的sql句，参数值用?表示
@@ -158,11 +166,22 @@ public class SqlUtil
         return stringBuilder.toString();
     }
 
-    public static String toSelect(String tableName, Condition basicCondition, QuerySettings querySettings,
+    /**
+     * 转换成sql语句，参数用？代替
+     *
+     * @param tableName
+     * @param basicCondition
+     * @param querySettings
+     * @param withSemicolon
+     * @param keys
+     * @return
+     */
+    public static WhereSQL toSelect(String tableName, Condition basicCondition, QuerySettings querySettings,
             boolean withSemicolon,
             String... keys)
     {
 
+        WhereSQL whereSQL = new WhereSQL();
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("SELECT ");
         if (keys == null || keys.length == 0)
@@ -182,9 +201,13 @@ public class SqlUtil
         }
         stringBuilder.append(" FROM `").append(tableName).append('`');
 
+
         if (basicCondition != null)
         {
-            stringBuilder.append(" WHERE ").append(basicCondition.toFinalObject());
+            Object[] result = (Object[]) basicCondition.toFinalObject();
+
+            stringBuilder.append(" WHERE ").append(result[0]);
+            whereSQL.args = (Object[]) result[1];
         }
 
         if (querySettings != null)
@@ -204,9 +227,12 @@ public class SqlUtil
         }
 
         if (withSemicolon)
+        {
             stringBuilder.append(";");
+        }
 
-        return stringBuilder.toString();
+        whereSQL.sql = stringBuilder.toString();
+        return whereSQL;
     }
 
 }

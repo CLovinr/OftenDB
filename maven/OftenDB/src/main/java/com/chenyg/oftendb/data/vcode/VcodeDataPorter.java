@@ -7,7 +7,6 @@ import com.chenyg.wporter.InCheckParser;
 import com.chenyg.wporter.WPObject;
 import com.chenyg.wporter.annotation.ChildIn;
 import com.chenyg.wporter.annotation.ChildOut;
-import com.chenyg.wporter.annotation.ParamExtra;
 import com.chenyg.wporter.base.CheckType;
 import com.chenyg.wporter.base.JResponse;
 import com.chenyg.wporter.base.RequestMethod;

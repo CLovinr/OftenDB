@@ -52,12 +52,12 @@ public abstract class Condition implements ToFinal
     public static final Operator SUBSTR = new MyOperator("SUBSTR");
 
     /**
-     * 或者
+     * 或者,对应于{@linkplain #put(Operator, Condition)},使得put变成逻辑或连接。
      */
     public static final Operator OR = new MyOperator("OR");
 
     /**
-     * 非
+     * 非,对应于{@linkplain #put(Operator, Condition)},使得条件结果整体取反。
      */
     public static final Operator NOT = new MyOperator("NOT");
 
@@ -200,6 +200,12 @@ public abstract class Condition implements ToFinal
         }
     }
 
+    /**
+     * 默认为逻辑与。
+     * @param operator
+     * @param unit
+     * @return
+     */
     public Condition put(Operator operator, Unit unit)
     {
         isNull(operator);

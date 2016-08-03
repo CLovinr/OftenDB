@@ -2,8 +2,6 @@ package com.chenyg.oftendb.db.sql;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -47,9 +45,11 @@ public class SqlHandle implements DBHandle
 
     private static final SqlCondition TRUE = null;// new SqlCondition();
 
-    private static Object toWhere(Condition condition){
-        return condition==null?"":" WHERE "+checkCondition(condition).toFinalObject();
+    private static Object toWhere(Condition condition)
+    {
+        return condition == null ? "" : " WHERE " + checkCondition(condition).toFinalObject();
     }
+
     public static SqlCondition checkCondition(Condition condition)
     {
         if (condition == null)
@@ -96,7 +96,7 @@ public class SqlHandle implements DBHandle
     public int del(Condition query) throws DBException
     {
         String sql = "DELETE FROM `" + tableName
-                + "`" + toWhere(query)+ ";";
+                + "`" + toWhere(query) + ";";
 
         return DataBase.execute(conn, sql);
     }
@@ -151,11 +151,13 @@ public class SqlHandle implements DBHandle
     public List<JSONObject> getJSONs(Condition query, QuerySettings querySettings, String... keys) throws DBException
     {
 
-        String sql = SqlUtil.toSelect(tableName, checkCondition(query), checkQuerySettings(querySettings), true, keys);
-        return _getJSONS(sql, keys);
+        SqlUtil.WhereSQL whereSQL = SqlUtil
+                .toSelect(tableName, checkCondition(query), checkQuerySettings(querySettings), true, keys);
+        return _getJSONS(whereSQL, keys);
     }
 
-    private List<JSONObject> _getJSONS(String sql, String[] keys)
+
+    private List<JSONObject> _getJSONS(SqlUtil.WhereSQL whereSQL, String[] keys)
     {
         ArrayList<JSONObject> list = new ArrayList<JSONObject>();
         PreparedStatement ps = null;
@@ -163,7 +165,12 @@ public class SqlHandle implements DBHandle
         try
         {
 
-            ps = conn.prepareStatement(sql);
+            ps = conn.prepareStatement(whereSQL.sql);
+            for (int i = 0; i < whereSQL.args.length; i++)
+            {
+                Object obj = whereSQL.args[i];
+                ps.setObject(i + 1, obj);
+            }
             ResultSet rs = ps.executeQuery();
 
             while (rs.next())
@@ -387,14 +394,19 @@ public class SqlHandle implements DBHandle
 
         ArrayList<Object> list = new ArrayList<Object>();
 
-        String sql = SqlUtil.toSelect(tableName, checkCondition(query), checkQuerySettings(querySettings), true, key);
+        SqlUtil.WhereSQL whereSQL = SqlUtil
+                .toSelect(tableName, checkCondition(query), checkQuerySettings(querySettings), true, key);
 
         PreparedStatement ps = null;
 
         try
         {
 
-            ps = conn.prepareStatement(sql);
+            ps = conn.prepareStatement(whereSQL.sql);
+            for (int i = 0; i < whereSQL.args.length; i++)
+            {
+                ps.setObject(i + 1, whereSQL.args[i]);
+            }
             ResultSet rs = ps.executeQuery();
 
             while (rs.next())
@@ -436,7 +448,7 @@ public class SqlHandle implements DBHandle
         String sql = "UPDATE `" + tableName
                 + "` SET `"
                 + name
-                + "`=?"+toWhere(query)+ ";";
+                + "`=?" + toWhere(query) + ";";
         PreparedStatement ps = null;
         try
         {
@@ -457,11 +469,15 @@ public class SqlHandle implements DBHandle
     @Override
     public byte[] getBinary(Condition query, String name) throws DBException
     {
-        String sql = SqlUtil.toSelect(tableName, checkCondition(query), SqlQuerySettings.FIND_ONE, true, name);
+        SqlUtil.WhereSQL ws = SqlUtil.toSelect(tableName, checkCondition(query), SqlQuerySettings.FIND_ONE, true, name);
         PreparedStatement ps = null;
         try
         {
-            ps = conn.prepareStatement(sql);
+            ps = conn.prepareStatement(ws.sql);
+            for (int i = 0; i < ws.args.length; i++)
+            {
+                ps.setObject(i + 1, ws.args[i]);
+            }
 
             ResultSet rs = ps.executeQuery();
             byte[] bs = null;
@@ -656,7 +672,7 @@ public class SqlHandle implements DBHandle
 
             long n = 0;
 
-            String sql = "SELECT count(*) rscount FROM `" + tableName+"`"+toWhere(condition) + ";";
+            String sql = "SELECT count(*) rscount FROM `" + tableName + "`" + toWhere(condition) + ";";
             PreparedStatement ps = null;
             try
             {
@@ -699,8 +715,8 @@ public class SqlHandle implements DBHandle
         {
             throw new DBException("the object must be " + SqlAdvancedQuery.class);
         }
-        String sql = advancedQuery.toFinalObject().toString();
-        return _getJSONS(sql, null);
+        SqlAdvancedQuery advanced = (SqlAdvancedQuery) advancedQuery;
+        return _getJSONS(advanced.whereSQL, advanced.keys);
     }
 
     @Override

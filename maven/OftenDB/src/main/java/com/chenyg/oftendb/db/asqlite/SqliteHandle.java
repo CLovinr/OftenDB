@@ -9,12 +9,9 @@ import com.chenyg.oftendb.db.*;
 import com.chenyg.oftendb.db.sql.SqlHandle;
 import com.chenyg.oftendb.db.sql.SqlQuerySettings;
 import com.chenyg.oftendb.db.sql.SqlUtil;
-import com.chenyg.wporter.util.WPTool;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -57,8 +54,9 @@ public class SqliteHandle implements DBHandle
         }
     }
 
-    private  Object toWhere(Condition condition){
-        return condition==null?"":" WHERE "+checkCondition(condition).toFinalObject();
+    private Object toWhere(Condition condition)
+    {
+        return condition == null ? "" : " WHERE " + checkCondition(condition).toFinalObject();
     }
 
     private Condition checkCondition(Condition condition)
@@ -130,7 +128,7 @@ public class SqliteHandle implements DBHandle
         ContentValues contentValues = new ContentValues(nameValues.size());
         for (int i = 0; i < nameValues.size(); i++)
         {
-            put("`"+nameValues.name(i)+"`", nameValues.value(i), contentValues);
+            put("`" + nameValues.name(i) + "`", nameValues.value(i), contentValues);
         }
         return contentValues;
     }
@@ -221,7 +219,7 @@ public class SqliteHandle implements DBHandle
     {
         String sql = "DELETE FROM `" + tableName
                 + "`"
-                +toWhere(query)+";";
+                + toWhere(query) + ";";
         SQLiteStatement statement = null;
         try
         {
@@ -244,18 +242,36 @@ public class SqliteHandle implements DBHandle
         {
             throw new DBException("the object must be " + SqliteAdvancedQuery.class);
         }
-        String sql = advancedQuery.toFinalObject().toString();
-        return _getJSONS(sql, null);
+        SqliteAdvancedQuery sqliteAdvancedQuery = (SqliteAdvancedQuery) advancedQuery;
+        return _getJSONS(sqliteAdvancedQuery.whereSQL, sqliteAdvancedQuery.keys);
     }
 
-    private List<JSONObject> _getJSONS(String sql, String[] keys)
+    private Cursor rawQuery(SqlUtil.WhereSQL whereSQL)
+    {
+        String[] args = null;
+        if (whereSQL.args != null)
+        {
+            args = new String[whereSQL.args.length];
+            for (int i = 0; i < args.length; i++)
+            {
+                if (whereSQL.args[i] != null)
+                {
+                    args[i] = String.valueOf(whereSQL.args[i]);
+                }
+            }
+        }
+
+        Cursor cursor = db.rawQuery(whereSQL.sql, args);
+        return cursor;
+    }
+
+    private List<JSONObject> _getJSONS(SqlUtil.WhereSQL whereSQL, String[] keys)
     {
         ArrayList<JSONObject> list = new ArrayList<JSONObject>();
         Cursor cursor = null;
         try
         {
-            cursor = db.rawQuery(sql, null);
-
+            cursor = rawQuery(whereSQL);
             while (cursor.moveToNext())
             {
                 list.add(getJSONObject(cursor, keys));
@@ -313,10 +329,10 @@ public class SqliteHandle implements DBHandle
     @Override
     public List<JSONObject> getJSONs(Condition query, QuerySettings querySettings, String... keys) throws DBException
     {
-        String sql = SqlUtil
+        SqlUtil.WhereSQL whereSQL = SqlUtil
                 .toSelect(tableName, checkCondition(query), SqlHandle.checkQuerySettings(querySettings),
                         false, keys);
-        return _getJSONS(sql, keys);
+        return _getJSONS(whereSQL, keys);
     }
 
 
@@ -326,14 +342,14 @@ public class SqliteHandle implements DBHandle
 
         ArrayList<Object> list = new ArrayList<Object>();
 
-        String sql = SqlUtil
+        SqlUtil.WhereSQL whereSQL = SqlUtil
                 .toSelect(tableName, checkCondition(query), SqlHandle.checkQuerySettings(querySettings),
                         false, key);
 
         Cursor cursor = null;
         try
         {
-            cursor = db.rawQuery(sql, null);
+            cursor = rawQuery(whereSQL);
             while (cursor.moveToNext())
             {
                 list.add(TypeUtil.getObject(cursor, 0));
@@ -386,7 +402,7 @@ public class SqliteHandle implements DBHandle
     {
         String sql = "SELECT count(*) FROM `" + tableName
                 + "`"
-                + toWhere(query)+";";
+                + toWhere(query) + ";";
         Cursor cursor = null;
         try
         {
@@ -413,7 +429,7 @@ public class SqliteHandle implements DBHandle
                 + "` SET `"
                 + name
                 + "`=?"
-                + toWhere(query)+";";
+                + toWhere(query) + ";";
         SQLiteStatement statement = null;
         try
         {
@@ -434,12 +450,12 @@ public class SqliteHandle implements DBHandle
     @Override
     public byte[] getBinary(Condition query, String name) throws DBException
     {
-        String sql = SqlUtil
+        SqlUtil.WhereSQL wsql = SqlUtil
                 .toSelect(tableName, checkCondition(query), SqlQuerySettings.FIND_ONE, true, name);
         Cursor cursor = null;
         try
         {
-            cursor = db.rawQuery(sql, null);
+            cursor = rawQuery(wsql);
             byte[] bs = null;
             if (cursor.moveToNext())
             {
