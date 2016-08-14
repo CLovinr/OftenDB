@@ -10,6 +10,7 @@ import com.chenyg.oftendb.db.BaseEasier;
 public class SqlUtil
 {
 
+    private static final Object[] EMPTY_OBJS = new Object[0];
 
     public static class WhereSQL
     {
@@ -208,6 +209,8 @@ public class SqlUtil
 
             stringBuilder.append(" WHERE ").append(result[0]);
             whereSQL.args = (Object[]) result[1];
+        }else{
+            whereSQL.args = EMPTY_OBJS;
         }
 
         if (querySettings != null)
