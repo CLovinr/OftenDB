@@ -1,11 +1,9 @@
 package com.chenyg.oftendb.db.sql;
 
-import com.chenyg.oftendb.db.Condition;
-import com.chenyg.oftendb.db.QuerySettings;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import com.chenyg.oftendb.db.BaseEasier;
+import com.chenyg.oftendb.db.Condition;
+import com.chenyg.oftendb.db.QuerySettings;
 
 public class SqlUtil
 {
@@ -141,9 +139,10 @@ public class SqlUtil
      * @param basicCondition
      * @return
      */
-    public static String toSetValues(String tableName, String[] names, Condition basicCondition, boolean withSemicolon)
+    public static WhereSQL toSetValues(String tableName, String[] names, Condition basicCondition,
+            boolean withSemicolon)
     {
-
+        WhereSQL whereSQL = new WhereSQL();
         StringBuilder setValues = new StringBuilder();
         for (int i = 0; i < names.length; i++)
         {
@@ -159,29 +158,110 @@ public class SqlUtil
         stringBuilder.append("UPDATE `").append(tableName).append("` SET ").append(setValues);
         if (basicCondition != null)
         {
-            stringBuilder.append(" WHERE ").append(basicCondition.toFinalObject());
+            Object[] result = (Object[]) basicCondition.toFinalObject();
+
+            stringBuilder.append(" WHERE ").append(result[0]);
+            whereSQL.args = (Object[]) result[1];
+        } else
+        {
+            whereSQL.args = EMPTY_OBJS;
         }
         if (withSemicolon)
             stringBuilder.append(";");
+        whereSQL.sql = stringBuilder.toString();
+        return whereSQL;
+    }
 
-        return stringBuilder.toString();
+    public static WhereSQL toUpdate(String tableName, Condition condition, String setName, boolean withSemicolon)
+    {
+        WhereSQL whereSQL = new WhereSQL();
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("UPDATE  `").append(tableName).append("` SET `").append(setName).append("`=?");
+
+        if (condition != null)
+        {
+            Object[] result = (Object[]) condition.toFinalObject();
+
+            stringBuilder.append(" WHERE ").append(result[0]);
+            whereSQL.args = (Object[]) result[1];
+        } else
+        {
+            whereSQL.args = EMPTY_OBJS;
+        }
+
+        if (withSemicolon)
+        {
+            stringBuilder.append(";");
+        }
+
+        whereSQL.sql = stringBuilder.toString();
+        return whereSQL;
+    }
+
+    public static WhereSQL toDelete(String tableName, Condition condition, boolean withSemicolon)
+    {
+        WhereSQL whereSQL = new WhereSQL();
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("DELETE FROM  `").append(tableName).append("`");
+
+        if (condition != null)
+        {
+            Object[] result = (Object[]) condition.toFinalObject();
+
+            stringBuilder.append(" WHERE ").append(result[0]);
+            whereSQL.args = (Object[]) result[1];
+        } else
+        {
+            whereSQL.args = EMPTY_OBJS;
+        }
+
+        if (withSemicolon)
+        {
+            stringBuilder.append(";");
+        }
+
+        whereSQL.sql = stringBuilder.toString();
+        return whereSQL;
+    }
+
+
+    /**
+     * 转换成sql语句，参数用？代替
+     */
+    public static WhereSQL toCountSelect(String tableName, String columnName, Condition basicCondition,
+            boolean withSemicolon)
+    {
+        WhereSQL whereSQL = new WhereSQL();
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("SELECT count(*) ").append(columnName);
+        stringBuilder.append(" FROM `").append(tableName).append('`');
+
+        if (basicCondition != null)
+        {
+            Object[] result = (Object[]) basicCondition.toFinalObject();
+            stringBuilder.append(" WHERE ").append(result[0]);
+            whereSQL.args = (Object[]) result[1];
+        } else
+        {
+            whereSQL.args = EMPTY_OBJS;
+        }
+
+        if (withSemicolon)
+        {
+            stringBuilder.append(";");
+        }
+
+        whereSQL.sql = stringBuilder.toString();
+        return whereSQL;
     }
 
     /**
      * 转换成sql语句，参数用？代替
-     *
-     * @param tableName
-     * @param basicCondition
-     * @param querySettings
-     * @param withSemicolon
-     * @param keys
-     * @return
      */
     public static WhereSQL toSelect(String tableName, Condition basicCondition, QuerySettings querySettings,
             boolean withSemicolon,
             String... keys)
     {
-
         WhereSQL whereSQL = new WhereSQL();
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("SELECT ");
@@ -209,7 +289,8 @@ public class SqlUtil
 
             stringBuilder.append(" WHERE ").append(result[0]);
             whereSQL.args = (Object[]) result[1];
-        }else{
+        } else
+        {
             whereSQL.args = EMPTY_OBJS;
         }
 

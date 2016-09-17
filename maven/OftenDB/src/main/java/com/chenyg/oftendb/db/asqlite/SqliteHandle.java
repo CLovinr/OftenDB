@@ -54,10 +54,6 @@ public class SqliteHandle implements DBHandle
         }
     }
 
-    private Object toWhere(Condition condition)
-    {
-        return condition == null ? "" : " WHERE " + checkCondition(condition).toFinalObject();
-    }
 
     private Condition checkCondition(Condition condition)
     {
@@ -217,13 +213,18 @@ public class SqliteHandle implements DBHandle
     @Override
     public int del(Condition query) throws DBException
     {
-        String sql = "DELETE FROM `" + tableName
-                + "`"
-                + toWhere(query) + ";";
         SQLiteStatement statement = null;
         try
         {
-            statement = db.compileStatement(sql);
+            SqlUtil.WhereSQL whereSQL = SqlUtil.toDelete(tableName, checkCondition(query), true);
+
+            statement = db.compileStatement(whereSQL.sql);
+            Object[] args = whereSQL.args;
+            for (int i = 0; i < args.length; i++)
+            {
+                bind(i + 1, args[i], statement);
+            }
+
             return statement.executeUpdateDelete();
         } catch (Exception e)
         {
@@ -376,14 +377,18 @@ public class SqliteHandle implements DBHandle
         SQLiteStatement statement = null;
         try
         {
-            String sql = SqlUtil.toSetValues(tableName, nameValues.names(), checkCondition(query), false);
-            statement = db.compileStatement(sql);
+            SqlUtil.WhereSQL whereSql = SqlUtil
+                    .toSetValues(tableName, nameValues.names(), checkCondition(query), false);
+            statement = db.compileStatement(whereSql.sql);
             for (int i = 0; i < nameValues.size(); i++)
             {
-                nameValues.value(i);
                 bind(i + 1, nameValues.value(i), statement);
             }
-
+            Object[] args = whereSql.args;
+            for (int i = 0, k = nameValues.size() + 1; i < args.length; i++, k++)
+            {
+                bind(k, args[i], statement);
+            }
             n = statement.executeUpdateDelete();
 
         } catch (Exception e)
@@ -400,13 +405,11 @@ public class SqliteHandle implements DBHandle
     @Override
     public long exists(Condition query) throws DBException
     {
-        String sql = "SELECT count(*) FROM `" + tableName
-                + "`"
-                + toWhere(query) + ";";
         Cursor cursor = null;
         try
         {
-            cursor = db.rawQuery(sql, null);
+            SqlUtil.WhereSQL whereSQL = SqlUtil.toCountSelect(tableName, "", checkCondition(query), true);
+            cursor = rawQuery(whereSQL);
             long n = 0;
             if (cursor.moveToNext())
             {
@@ -425,18 +428,19 @@ public class SqliteHandle implements DBHandle
     @Override
     public boolean saveBinary(Condition query, String name, byte[] data, int offset, int length) throws DBException
     {
-        String sql = "UPDATE `" + tableName
-                + "` SET `"
-                + name
-                + "`=?"
-                + toWhere(query) + ";";
         SQLiteStatement statement = null;
         try
         {
-            statement = db.compileStatement(sql);
+            SqlUtil.WhereSQL whereSQL = SqlUtil.toUpdate(tableName, checkCondition(query), name, true);
+            statement = db.compileStatement(whereSQL.sql);
             byte[] bs = new byte[length];
             System.arraycopy(data, offset, bs, 0, length);
             statement.bindBlob(1, bs);
+            Object[] args = whereSQL.args;
+            for (int i = 0; i < args.length; i++)
+            {
+                bind(i + 2, args[i], statement);
+            }
             return true;
         } catch (Exception e)
         {

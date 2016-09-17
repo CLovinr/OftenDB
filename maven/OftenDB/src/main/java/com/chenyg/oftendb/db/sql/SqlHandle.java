@@ -45,10 +45,6 @@ public class SqlHandle implements DBHandle
 
     private static final SqlCondition TRUE = null;// new SqlCondition();
 
-    private static Object toWhere(Condition condition)
-    {
-        return condition == null ? "" : " WHERE " + checkCondition(condition).toFinalObject();
-    }
 
     public static SqlCondition checkCondition(Condition condition)
     {
@@ -92,13 +88,34 @@ public class SqlHandle implements DBHandle
         return DataBase.executePS(conn, false, tableName, updateFields) > 0;
     }
 
+    private int execute(SqlUtil.WhereSQL whereSQL)
+    {
+        PreparedStatement ps = null;
+        try
+        {
+            ps = conn.prepareStatement(whereSQL.sql);
+            Object[] args = whereSQL.args;
+            for (int i = 0; i < args.length; i++)
+            {
+                Object obj = args[i];
+                ps.setObject(i + 1, obj);
+            }
+            int n = ps.executeUpdate();
+            return n;
+        } catch (Exception e)
+        {
+            throw new DBException(e);
+        } finally
+        {
+            WPTool.close(ps);
+        }
+    }
+
     @Override
     public int del(Condition query) throws DBException
     {
-        String sql = "DELETE FROM `" + tableName
-                + "`" + toWhere(query) + ";";
-
-        return DataBase.execute(conn, sql);
+        SqlUtil.WhereSQL whereSQL = SqlUtil.toDelete(tableName, checkCondition(query), true);
+        return execute(whereSQL);
     }
 
     public static QuerySettings checkQuerySettings(QuerySettings querySettings)
@@ -444,16 +461,17 @@ public class SqlHandle implements DBHandle
     @Override
     public boolean saveBinary(Condition query, String name, byte[] data, int offset, int length) throws DBException
     {
-
-        String sql = "UPDATE `" + tableName
-                + "` SET `"
-                + name
-                + "`=?" + toWhere(query) + ";";
         PreparedStatement ps = null;
         try
         {
-            ps = conn.prepareStatement(sql);
+            SqlUtil.WhereSQL whereSQL = SqlUtil.toUpdate(tableName, checkCondition(query), name, true);
+            ps = conn.prepareStatement(whereSQL.sql);
             ps.setBinaryStream(1, new ByteArrayInputStream(data, offset, length), length);
+            Object[] args = whereSQL.args;
+            for (int i = 0; i < args.length; i++)
+            {
+                ps.setObject(i + 2, args[i]);
+            }
             ps.executeUpdate();
             return true;
         } catch (Exception e)
@@ -498,35 +516,6 @@ public class SqlHandle implements DBHandle
     private static class DataBase
     {
 
-        /**
-         * 执行修改，添加，删除的操作，并返回影响的记录数。
-         *
-         * @param conn
-         * @param sql
-         * @return 影响的记录数。
-         * @throws ClassNotFoundException
-         * @throws SQLException
-         */
-        private static int execute(Connection conn, String sql) throws DBException
-        {
-            int n = 0;
-            PreparedStatement ps = null;
-            try
-            {
-                ps = conn.prepareStatement(sql);
-                n = ps.executeUpdate();
-
-            } catch (Exception e)
-            {
-                throw new DBException(e);
-            } finally
-            {
-                WPTool.close(ps);
-            }
-
-            return n;
-        }
-
         private static int executeSet(Connection conn, String tableName, Condition query,
                 NameValues updateFields) throws DBException
         {
@@ -534,11 +523,18 @@ public class SqlHandle implements DBHandle
             PreparedStatement ps = null;
             try
             {
-                String sql = SqlUtil.toSetValues(tableName, updateFields.names(), checkCondition(query), true);
-                ps = conn.prepareStatement(sql);
+                SqlUtil.WhereSQL whereSQL = SqlUtil
+                        .toSetValues(tableName, updateFields.names(), checkCondition(query), true);
+                ps = conn.prepareStatement(whereSQL.sql);
                 for (int i = 0; i < updateFields.size(); i++)
                 {
                     setObject(ps, i + 1, updateFields.value(i));
+                }
+
+                Object[] args = whereSQL.args;
+                for (int i = 0, k = updateFields.size() + 1; i < args.length; i++, k++)
+                {
+                    setObject(ps, k, args[i]);
                 }
 
                 n = ps.executeUpdate();
@@ -660,23 +656,23 @@ public class SqlHandle implements DBHandle
 
         /**
          * count某个条件
-         *
-         * @param conn
-         * @param condition
-         * @param tableName
-         * @return
-         * @throws DBException
          */
         public static long exists(Connection conn, Condition condition, String tableName) throws DBException
         {
-
             long n = 0;
-
-            String sql = "SELECT count(*) rscount FROM `" + tableName + "`" + toWhere(condition) + ";";
             PreparedStatement ps = null;
             try
             {
-                ps = conn.prepareStatement(sql);
+                SqlUtil.WhereSQL whereSql = SqlUtil
+                        .toCountSelect(tableName, "rscount", checkCondition(condition), true);
+                ps = conn.prepareStatement(whereSql.sql);
+
+                Object[] args = whereSql.args;
+                for (int i = 0; i < args.length; i++)
+                {
+                    ps.setObject(i + 1, args[i]);
+                }
+
                 ResultSet rs = ps.executeQuery();
                 if (rs.next())
                 {
